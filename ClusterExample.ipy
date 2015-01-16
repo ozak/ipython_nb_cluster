@@ -1,0 +1,35 @@
+#!/usr/bin/env ipython
+'''
+Simple program to execute code in parallel using IPython
+To be used on ManeFrame using Slurm
+'''
+
+from IPython.parallel import Client
+import pandas as pd
+import numpy as np
+
+# Setup the clients, direct views, adn balanced views
+c = Client()
+c.ids
+dview = c[:]
+view = c.load_balanced_view()
+dview.activate()
+
+# Run Some things in parallel
+%px import os       # imports on all clients
+%px import socket   # imports on all clients
+
+%px pid = os.getpid()
+%px cpu = socket.gethostname()
+
+# See outputs
+print(dview['pid'])
+print(dview['cpu'])
+
+# Bring results to master
+pid=dview['pid']
+cpu=dview['cpu']
+
+# Export cpu and pid to a file
+df=pd.DataFrame(np.array([cpu,pid]).transpose(),columns=['cpu','pid'])
+df.to_csv('hosts_pids.csv', index=False)
