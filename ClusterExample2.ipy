@@ -41,3 +41,28 @@ df=pd.DataFrame(np.array([cpu,pid]).transpose(),columns=['cpu','pid'])
 df.to_csv('hosts_pids.csv', index=False)
 
 print(i)
+
+def get_host_free_memory(client):
+    """Free memory on each host of the cluster in MB."""
+    all_engines = client[:]
+    def hostname():
+        import socket
+        return socket.gethostname()
+
+    hostnames = all_engines.apply(hostname).get_dict()
+    one_engine_per_host = dict((hostname, engine_id)
+                               for engine_id, hostname
+                               in hostnames.items())
+
+    def host_free_memory():
+        import psutil
+        return psutil.virtual_memory().free / 1e6
+
+
+    one_engine_per_host_ids = list(one_engine_per_host.values())
+    host_mem = client[one_engine_per_host_ids].apply(
+        host_free_memory).get_dict()
+
+    return dict((hostnames[eid], m) for eid, m in host_mem.items())
+
+get_host_free_memory(c)
